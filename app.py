@@ -10,7 +10,10 @@ import streamlit as st
 from decision_engine import DecisionAPIError, evaluate_options
 
 
-# -------------------- CONFIG --------------------
+# ==================================================
+# CONFIGURATION
+# ==================================================
+
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "decision_history.db"
 
@@ -18,217 +21,15 @@ st.set_page_config(
     page_title="Decision AI",
     page_icon="🧭",
     layout="wide",
-    initial_sidebar_state="collapsed",
 )
 
 
-# -------------------- MINIMAL THEME --------------------
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+# ==================================================
+# DATABASE
+# ==================================================
 
-:root {
-    --bg: #0e1117;
-    --panel: #161b22;
-    --border: #30363d;
-    --text: #e6edf3;
-    --muted: #8b949e;
-    --accent: #a78bfa;
-}
-
-html, body, [class*="css"] {
-    font-family: Inter, sans-serif;
-}
-
-.stApp {
-    background: var(--bg);
-    color: var(--text);
-}
-
-[data-testid="stHeader"] {
-    background: var(--bg);
-}
-
-.block-container {
-    max-width: 1100px;
-    padding-top: 2rem;
-    padding-bottom: 3rem;
-}
-
-h1, h2, h3 {
-    color: var(--text);
-    letter-spacing: -0.025em;
-}
-
-h1 {
-    font-size: 2rem;
-    font-weight: 700;
-}
-
-h2 {
-    font-size: 1.4rem;
-}
-
-p, label {
-    color: var(--text);
-}
-
-[data-testid="stCaptionContainer"] {
-    color: var(--muted) !important;
-}
-
-/* Inputs */
-.stTextArea textarea,
-.stTextInput input,
-[data-testid="stNumberInput"] input {
-    background: var(--panel) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 8px !important;
-}
-
-.stTextArea textarea:focus,
-.stTextInput input:focus,
-[data-testid="stNumberInput"] input:focus {
-    border-color: var(--accent) !important;
-    box-shadow: 0 0 0 1px var(--accent) !important;
-}
-
-/* Number controls */
-[data-testid="stNumberInput"] button {
-    background: var(--panel) !important;
-    color: var(--text) !important;
-    border-color: var(--border) !important;
-}
-
-/* Buttons */
-.stButton > button,
-.stFormSubmitButton > button {
-    border-radius: 8px;
-    min-height: 40px;
-    font-weight: 600;
-}
-
-.stButton > button[kind="primary"],
-.stFormSubmitButton > button[kind="primary"] {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #11111b;
-}
-
-/* Tabs */
-button[data-baseweb="tab"] {
-    font-weight: 500;
-}
-
-button[data-baseweb="tab"][aria-selected="true"] {
-    color: var(--accent) !important;
-}
-
-/* Simple containers */
-[data-testid="stMetric"] {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px;
-}
-
-[data-testid="stMetricLabel"] {
-    color: var(--muted) !important;
-}
-
-[data-testid="stMetricValue"] {
-    color: var(--text) !important;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-}
-
-[data-testid="stExpander"] {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-}
-
-[data-testid="stDataFrame"] {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-hr {
-    border-color: var(--border);
-}
-
-.small-note {
-    color: var(--muted);
-    font-size: 0.85rem;
-}
-
-
-/* Fix text visibility across the dark UI */
-
-/* Main text and labels */
-.stApp,
-.stApp p,
-.stApp label,
-.stApp .stMarkdown,
-.stApp [data-testid="stMarkdownContainer"] p {
-    color: #e6edf3 !important;
-}
-
-/* Text-area content */
-.stTextArea textarea,
-.stTextInput input {
-    background-color: #161b22 !important;
-    color: #f0f6fc !important;
-    -webkit-text-fill-color: #f0f6fc !important;
-    border: 1px solid #484f58 !important;
-    caret-color: #a78bfa !important;
-}
-
-/* Placeholder text */
-.stTextArea textarea::placeholder,
-.stTextInput input::placeholder {
-    color: #8b949e !important;
-    -webkit-text-fill-color: #8b949e !important;
-    opacity: 1 !important;
-}
-
-/* Number-input values */
-[data-testid="stNumberInput"] input {
-    background-color: #161b22 !important;
-    color: #f0f6fc !important;
-    -webkit-text-fill-color: #f0f6fc !important;
-    border: 1px solid #484f58 !important;
-    opacity: 1 !important;
-}
-
-/* Number-input buttons */
-[data-testid="stNumberInput"] button {
-    background-color: #21262d !important;
-    color: #f0f6fc !important;
-    border-color: #484f58 !important;
-}
-
-/* Input labels and captions */
-[data-testid="stWidgetLabel"] p,
-[data-testid="stCaptionContainer"] p {
-    color: #c9d1d9 !important;
-}
-
-/* Improve focus visibility */
-.stTextArea textarea:focus,
-.stTextInput input:focus,
-[data-testid="stNumberInput"] input:focus {
-    border-color: #a78bfa !important;
-    box-shadow: 0 0 0 1px #a78bfa !important;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-
-# -------------------- DATABASE --------------------
 def initialize_database():
+    """Create or safely migrate the decision history table."""
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS decisions (
@@ -268,6 +69,7 @@ def initialize_database():
 
 
 def save_decision(problem, results):
+    """Save an evaluated decision to SQLite."""
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(
             """
@@ -284,6 +86,7 @@ def save_decision(problem, results):
 
 
 def load_history():
+    """Return the 50 most recent decisions."""
     with sqlite3.connect(DB_PATH) as conn:
         return conn.execute("""
             SELECT id, created_at, problem, results
@@ -296,162 +99,219 @@ def load_history():
 initialize_database()
 
 
-# -------------------- HEADER --------------------
-st.title("Decision AI")
-st.caption("Compare your options. Prioritize what matters. Decide with clarity.")
+# ==================================================
+# HELPER FUNCTIONS
+# ==================================================
+
+def parse_lines(text):
+    """Convert multiline input into a list of non-empty strings."""
+    return [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip()
+    ]
+
+
+def display_score(score):
+    """Format a score without assuming the model returned one."""
+    if isinstance(score, (int, float)) and not isinstance(score, bool):
+        return round(score, 2)
+
+    return "Unavailable"
+
+
+# ==================================================
+# APPLICATION HEADER
+# ==================================================
+
+st.title("🧭 Decision AI")
+
+st.write(
+    "Compare alternatives, evaluate important criteria, "
+    "and make more informed decisions."
+)
+
+st.divider()
+
+
+# ==================================================
+# NAVIGATION
+# ==================================================
 
 workspace_tab, history_tab = st.tabs([
-    "Decision workspace",
-    "History",
+    "Decision Workspace",
+    "Decision History",
 ])
 
 
-# -------------------- DECISION WORKSPACE --------------------
+# ==================================================
+# DECISION WORKSPACE
+# ==================================================
+
 with workspace_tab:
-    st.subheader("Your decision")
 
-    problem = st.text_area(
-        "What are you trying to decide?",
-        placeholder="Describe your decision and relevant constraints...",
-        height=90,
-        key="problem_input",
-    )
+    st.header("Define your decision")
 
-    option_col, criteria_col = st.columns(2)
+    with st.form("decision_form"):
 
-    with option_col:
-        options_text = st.text_area(
-            "Options",
+        problem = st.text_area(
+            "Decision problem",
             placeholder=(
-                "Build a RAG system\n"
-                "Fine-tune an LLM\n"
-                "Use prompt engineering"
+                "Describe what you need to decide and "
+                "include any relevant constraints."
             ),
-            height=140,
-            key="options_input",
-            help="Enter one option per line.",
+            height=100,
         )
 
-    with criteria_col:
-        criteria_text = st.text_area(
-            "Criteria",
-            value=(
-                "Cost efficiency\n"
-                "Development time"
-            ),
-            height=140,
-            key="criteria_input",
-            help="Enter one criterion per line.",
+        col1, col2 = st.columns(2)
+
+        with col1:
+            options_text = st.text_area(
+                "Options",
+                placeholder=(
+                    "Build a RAG system\n"
+                    "Fine-tune an LLM\n"
+                    "Use prompt engineering"
+                ),
+                height=150,
+                help="Enter one option per line.",
+            )
+
+        with col2:
+            criteria_text = st.text_area(
+                "Evaluation criteria",
+                value=(
+                    "Cost efficiency\n"
+                    "Ease of implementation\n"
+                    "Expected accuracy\n"
+                    "Development time"
+                ),
+                height=150,
+                help="Enter one criterion per line.",
+            )
+
+        criteria = parse_lines(criteria_text)
+
+        st.subheader("Criterion weights")
+
+        st.caption(
+            "Set each criterion's importance from 0 "
+            "(not important) to 5 (very important)."
         )
 
-    criteria = [
-        item.strip()
-        for item in criteria_text.splitlines()
-        if item.strip()
-    ]
+        weights = []
 
-    st.subheader("Criterion weights")
-    st.caption("Set importance from 0 (not important) to 5 (very important).")
+        if criteria:
+            weight_columns = st.columns(min(4, len(criteria)))
 
-    weights = []
-
-    if criteria:
-        weight_columns = st.columns(min(4, len(criteria)))
-
-        for i, criterion in enumerate(criteria):
-            with weight_columns[i % len(weight_columns)]:
-                weights.append(
-                    st.number_input(
+            for index, criterion in enumerate(criteria):
+                with weight_columns[index % len(weight_columns)]:
+                    weight = st.number_input(
                         criterion,
                         min_value=0,
                         max_value=5,
                         value=3,
                         step=1,
-                        key=f"weight_{i}_{criterion}",
+                        key=f"weight_{index}_{criterion}",
                     )
-                )
+                    weights.append(weight)
 
-    submitted = st.button(
-        "Evaluate options",
-        type="primary",
-        use_container_width=True,
-    )
+        submitted = st.form_submit_button(
+            "Evaluate Options",
+            type="primary",
+            use_container_width=True,
+        )
+
+    # --------------------------------------------------
+    # VALIDATE AND EVALUATE
+    # --------------------------------------------------
 
     if submitted:
-        options = [
-            item.strip()
-            for item in options_text.splitlines()
-            if item.strip()
-        ]
 
-        criteria = [
-            item.strip()
-            for item in criteria_text.splitlines()
-            if item.strip()
-        ]
+        options = parse_lines(options_text)
+        criteria = parse_lines(criteria_text)
 
         if not problem.strip():
-            st.error("Enter a decision problem.")
+            st.error("Please enter a decision problem.")
 
         elif len(options) < 2:
-            st.error("Enter at least two options.")
+            st.error("Please enter at least two options.")
 
         elif not criteria:
-            st.error("Enter at least one criterion.")
+            st.error("Please enter at least one criterion.")
 
         elif len(weights) != len(criteria):
-            st.error("The number of weights must match the criteria.")
+            st.error(
+                "The number of weights must match "
+                "the number of criteria."
+            )
 
         elif sum(weights) <= 0:
-            st.error("At least one criterion must have a positive weight.")
+            st.error(
+                "At least one criterion must have "
+                "a weight greater than zero."
+            )
 
         elif len(options) * len(criteria) > 8:
             st.error(
-                "This model supports at most 8 option-criterion "
-                "questions per request. Reduce your options or criteria."
+                "This model supports at most 8 "
+                "option-criterion questions per request. "
+                "Reduce the number of options or criteria."
             )
 
         else:
             try:
                 with st.spinner("Evaluating your options..."):
+
                     result = evaluate_options(
-                        problem,
-                        options,
-                        criteria,
-                        weights,
+                        problem=problem,
+                        options=options,
+                        criteria=criteria,
+                        weights=weights,
                     )
+
+                if not isinstance(result, dict):
+                    raise ValueError(
+                        "The decision engine returned "
+                        "an unexpected result format."
+                    )
+
+                rows = result.get("rows", [])
 
                 st.session_state["latest_result"] = result
 
-                save_decision(
-                    problem,
-                    result.get("rows", []),
-                )
+                save_decision(problem, rows)
 
-                st.success("Evaluation completed and saved.")
+                st.success(
+                    "Evaluation completed and saved to history."
+                )
 
             except (ValueError, DecisionAPIError) as exc:
                 st.error(str(exc))
 
             except Exception as exc:
                 st.error("An unexpected error occurred.")
+
                 with st.expander("Technical details"):
                     st.code(str(exc))
 
+    # --------------------------------------------------
+    # DISPLAY RESULTS
+    # --------------------------------------------------
 
-# -------------------- RESULTS --------------------
-with workspace_tab:
     result = st.session_state.get("latest_result")
 
     if result:
+
         st.divider()
-        st.subheader("Results")
+        st.header("Evaluation Results")
 
         rows = result.get("rows", [])
 
         scored_rows = [
             row for row in rows
             if isinstance(row.get("score"), (int, float))
+            and not isinstance(row.get("score"), bool)
         ]
 
         scored_rows.sort(
@@ -460,34 +320,39 @@ with workspace_tab:
         )
 
         if scored_rows:
-            best = scored_rows[0]
 
-            col1, col2, col3 = st.columns(3)
+            best_option = scored_rows[0]
 
-            col1.metric(
+            metric1, metric2, metric3 = st.columns(3)
+
+            metric1.metric(
                 "Top-ranked option",
-                str(best.get("option", "Unavailable")),
+                str(best_option.get("option", "Unavailable")),
             )
 
-            col2.metric(
+            metric1.caption("Highest calculated weighted score")
+
+            metric2.metric(
                 "Weighted score",
-                f'{best["score"]:.2f} / 5',
+                f'{best_option["score"]:.2f} / 5',
             )
 
-            col3.metric(
-                "Options compared",
+            metric3.metric(
+                "Options evaluated",
                 len(rows),
             )
 
-            st.markdown("#### Ranking")
+            st.subheader("Option ranking")
 
             ranking_data = []
 
-            for index, row in enumerate(scored_rows, start=1):
+            for rank, row in enumerate(scored_rows, start=1):
                 ranking_data.append({
-                    "Rank": index,
+                    "Rank": rank,
                     "Option": row.get("option", ""),
-                    "Weighted score / 5": round(row["score"], 2),
+                    "Weighted Score / 5": round(
+                        row["score"], 2
+                    ),
                 })
 
             st.dataframe(
@@ -496,7 +361,7 @@ with workspace_tab:
                 hide_index=True,
             )
 
-            st.markdown("#### Score comparison")
+            st.subheader("Score comparison")
 
             chart_data = pd.DataFrame([
                 {
@@ -506,35 +371,35 @@ with workspace_tab:
                 for row in scored_rows
             ]).set_index("Option")
 
-            st.bar_chart(chart_data, use_container_width=True)
+            st.bar_chart(
+                chart_data,
+                use_container_width=True,
+            )
 
-            detail_rows = []
+            st.subheader("Criterion breakdown")
+
+            detail_data = []
 
             for row in rows:
                 item = {
                     "Option": row.get("option", ""),
-                    "Weighted score / 5": (
-                        round(row["score"], 2)
-                        if isinstance(row.get("score"), (int, float))
-                        else "Unavailable"
+                    "Weighted Score / 5": display_score(
+                        row.get("score")
                     ),
                 }
 
-                for criterion, score in row.get(
+                criterion_scores = row.get(
                     "criterion_scores", {}
-                ).items():
-                    item[criterion] = (
-                        round(score, 2)
-                        if isinstance(score, (int, float))
-                        else "Unavailable"
-                    )
+                )
 
-                detail_rows.append(item)
+                if isinstance(criterion_scores, dict):
+                    for criterion, score in criterion_scores.items():
+                        item[criterion] = display_score(score)
 
-            st.markdown("#### Criterion breakdown")
+                detail_data.append(item)
 
             st.dataframe(
-                pd.DataFrame(detail_rows),
+                pd.DataFrame(detail_data),
                 use_container_width=True,
                 hide_index=True,
             )
@@ -560,66 +425,96 @@ with workspace_tab:
                     hide_index=True,
                 )
 
-        with st.expander("Raw API response"):
+        with st.expander("Technical details: Raw API response"):
             st.json(result.get("raw_response", {}))
 
         st.caption(
-            "AI-generated scores are estimates. Verify important "
-            "decisions with reliable evidence."
+            "AI-generated estimates are not verified facts. "
+            "Check important decisions against reliable evidence."
         )
 
 
-# -------------------- HISTORY --------------------
+# ==================================================
+# DECISION HISTORY
+# ==================================================
+
 with history_tab:
-    st.subheader("Saved decisions")
-    st.caption("Your 50 most recent decisions, stored locally.")
+
+    st.header("Decision History")
+
+    st.caption(
+        "Your 50 most recent saved decisions are stored locally."
+    )
 
     history = load_history()
 
     if not history:
-        st.info("No saved decisions yet. Evaluate an option to get started.")
+
+        st.info(
+            "No saved decisions yet. Evaluate your first decision "
+            "in the Decision Workspace."
+        )
 
     else:
-        for row_id, created_at, problem_text, results_json in history:
+
+        for (
+            decision_id,
+            created_at,
+            saved_problem,
+            results_json,
+        ) in history:
+
             label = (
-                f"#{row_id} · {created_at or 'Earlier record'} · "
-                f"{(problem_text or '')[:70]}"
+                f"Decision #{decision_id} | "
+                f"{created_at or 'Earlier record'}"
             )
 
             with st.expander(label):
-                st.write(problem_text or "No problem description")
+
+                st.markdown("**Decision problem**")
+                st.write(saved_problem or "No description available.")
 
                 try:
-                    parsed = json.loads(results_json or "[]")
+                    saved_results = json.loads(
+                        results_json or "[]"
+                    )
 
-                    if isinstance(parsed, list):
+                    if isinstance(saved_results, list) and saved_results:
+
                         history_data = []
 
-                        for item in parsed:
-                            score = item.get("score")
-
+                        for item in saved_results:
                             history_data.append({
                                 "Option": item.get("option", ""),
-                                "Weighted score / 5": (
-                                    round(score, 2)
-                                    if isinstance(score, (int, float))
-                                    else "Unavailable"
+                                "Weighted Score / 5": display_score(
+                                    item.get("score")
                                 ),
                             })
 
-                        if history_data:
-                            st.dataframe(
-                                pd.DataFrame(history_data),
-                                use_container_width=True,
-                                hide_index=True,
-                            )
+                        st.markdown("**Saved results**")
+
+                        st.dataframe(
+                            pd.DataFrame(history_data),
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+
+                    elif isinstance(saved_results, dict):
+                        st.json(saved_results)
+
                     else:
-                        st.json(parsed)
+                        st.caption("No result details were saved.")
 
                 except (ValueError, TypeError):
-                    st.warning("This history record could not be parsed.")
+                    st.warning(
+                        "This saved record could not be read."
+                    )
 
 
-# -------------------- FOOTER --------------------
+# ==================================================
+# FOOTER
+# ==================================================
+
 st.divider()
-st.caption("Decision AI · Simple decision support")
+
+st.caption("Decision AI · Built with Streamlit, Python and SQLite")
